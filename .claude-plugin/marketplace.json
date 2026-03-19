@@ -1,0 +1,10 @@
+{
+  "skills": [
+    {
+      "skillId": "crosscheck",
+      "name": "crosscheck",
+      "description": "Cross-checks a feature between the Android and iOS repos, surfacing discrepancies, missing behavior, or parity gaps. Use proactively when implementing or reviewing a feature to verify cross-platform parity, when unsure how the other platform implemented something, or when the user asks about iOS/Android differences. Invoked explicitly with \"/crosscheck FEATURE [--from android|ios] [--branch BRANCH]\". Auto-trigger whenever the user asks \"how does [platform] do X\", \"check [platform]\", \"is this consistent across platforms\", or you notice something that might differ between Android and iOS.",
+      "path": "skills/crosscheck"
+    }
+  ]
+}
