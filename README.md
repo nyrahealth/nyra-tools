@@ -10,33 +10,25 @@ Shared Claude Code skills and tools for the nyra team — available to both Andr
 
 ---
 
-## Setup (one-time, ~2 minutes)
+## Setup (one-time, ~1 minute)
 
-### 1. Add the nyra marketplace to your Claude settings
-
-Open `~/.claude/settings.json` and add the two highlighted sections:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "nyra-tools": {
-      "source": {
-        "source": "github",
-        "repo": "nyrahealth/nyra-tools"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "crosscheck@nyra-tools": true
-  }
-}
+```bash
+git clone https://github.com/nyrahealth/nyra-tools ~/Work/nyra-tools
+cd ~/Work/nyra-tools
+./setup-claude-skills.sh
 ```
 
-If you already have `enabledPlugins` entries (e.g. `pr-review-toolkit`), just add `"crosscheck@nyra-tools": true` to the existing object.
+Then restart Claude. Done — `/crosscheck` is available in any project.
 
-### 2. Restart Claude Code
+## Updating
 
-Skills are fetched on startup. After restarting, `/crosscheck` is available in any project.
+When skills are updated, just pull and restart Claude:
+
+```bash
+cd ~/Work/nyra-tools && git pull
+```
+
+No reinstall needed — skills are symlinked directly from this repo.
 
 ---
 
@@ -65,7 +57,7 @@ Skills are fetched on startup. After restarting, `/crosscheck` is available in a
 /crosscheck courses --from ios --branch feature/courses-v2
 ```
 
-Claude will also invoke `crosscheck` automatically when you ask questions like
+Claude will also invoke `crosscheck` automatically when you ask things like
 *"how does iOS handle this?"* or *"is this consistent across platforms?"*.
 
 ### Report output
@@ -96,5 +88,4 @@ export CROSSCHECK_ANDROID_PATH=/path/to/android
 ## Contributing a new skill
 
 1. Create a folder under `skills/<skill-name>/` with a `SKILL.md` and any helper scripts
-2. Add an entry to `.claude-plugin/marketplace.json`
-3. Open a PR — once merged, all team members get the skill on next Claude Code restart
+2. Open a PR — once merged, all team members get the skill on next `git pull`
