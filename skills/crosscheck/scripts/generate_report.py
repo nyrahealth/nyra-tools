@@ -68,6 +68,13 @@ TEMPLATE = """\
     .score.green .num {{ color: var(--green); }}
     .score.yellow .num {{ color: var(--yellow); }}
     .score.red .num {{ color: var(--red); }}
+    .rubric {{ background: var(--card); border: 1px solid var(--border);
+               border-radius: var(--radius); padding: 14px 20px; margin-bottom: 28px;
+               font-size: .82rem; display: flex; gap: 24px; flex-wrap: wrap; }}
+    .rubric-item {{ display: flex; align-items: flex-start; gap: 8px; }}
+    .rubric-item .dot {{ font-size: 1rem; margin-top: 1px; flex-shrink: 0; }}
+    .rubric-item p {{ color: var(--muted); margin: 0; }}
+    .rubric-item strong {{ color: var(--text); }}
     h2 {{ font-size: 1.1rem; font-weight: 600; margin: 32px 0 14px;
           padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
     .platforms {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
@@ -102,6 +109,24 @@ TEMPLATE = """\
     .finding .fdetail strong {{ display: block; margin-bottom: 3px;
                                 font-size: .75rem; text-transform: uppercase;
                                 letter-spacing: .04em; color: var(--muted); }}
+    .finding .fevidence {{ padding: 8px 18px 12px; border-top: 1px solid rgba(0,0,0,.07);
+                           font-size: .78rem; background: rgba(0,0,0,.02); }}
+    .finding .fevidence-label {{ font-size: .7rem; text-transform: uppercase;
+                                  letter-spacing: .05em; color: var(--muted);
+                                  margin-bottom: 5px; font-weight: 600; }}
+    .evidence-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }}
+    .evidence-chip {{ background: #fff; border: 1px solid var(--border); border-radius: 6px;
+                      padding: 2px 8px; font-family: monospace; font-size: .75rem;
+                      color: var(--text); }}
+    .evidence-chip .line {{ color: var(--muted); }}
+    .evidence-note {{ color: var(--muted); font-style: italic; font-size: .76rem; }}
+    .confidence {{ display: inline-flex; align-items: center; gap: 4px;
+                   font-size: .72rem; font-weight: 600; padding: 2px 8px;
+                   border-radius: 20px; margin-left: auto; }}
+    .confidence.high {{ background: #dcfce7; color: #166534; }}
+    .confidence.medium {{ background: #fef9c3; color: #854d0e; }}
+    .confidence.low {{ background: #fee2e2; color: #991b1b; }}
+    .ftop-right {{ margin-left: auto; display: flex; align-items: center; gap: 8px; }}
     .mermaid-wrap {{ background: var(--card); border: 1px solid var(--border);
                      border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }}
     .mermaid-wrap h3 {{ font-size: .95rem; font-weight: 600; margin-bottom: 16px;
@@ -136,6 +161,12 @@ TEMPLATE = """\
     <div class="score red"><div class="num">{count_red}</div><div class="label">✗ Discrepancy</div></div>
     <div class="score"><div class="num">{files_current}</div><div class="label">{current_label} files</div></div>
     <div class="score"><div class="num">{files_other}</div><div class="label">{other_label} files</div></div>
+  </div>
+
+  <div class="rubric">
+    <div class="rubric-item"><span class="dot">🟢</span><p><strong>Parity</strong> — functionally identical; impl style may differ</p></div>
+    <div class="rubric-item"><span class="dot">🟡</span><p><strong>Minor diff</strong> — same intent, small behavioral gap; low user impact</p></div>
+    <div class="rubric-item"><span class="dot">🔴</span><p><strong>Discrepancy</strong> — missing feature, divergent business logic, or error handling gap; needs action</p></div>
   </div>
 
   <h2>Architecture overview</h2>
@@ -199,12 +230,12 @@ flowchart TD
 
 FINDING_TEMPLATE = """\
     <div class="finding {status_class}">
-      <div class="ftop"><span class="icon">{icon}</span>{title}</div>
+      <div class="ftop"><span class="icon">{icon}</span>{title}<span class="ftop-right">{confidence_html}</span></div>
       <div class="fdesc">{description}</div>
       <div class="fdetails">
         <div class="fdetail"><strong>Android</strong>{android_detail}</div>
         <div class="fdetail"><strong>iOS</strong>{ios_detail}</div>
-      </div>
+      </div>{evidence_html}
     </div>"""
 
 STATUS_META = {
@@ -270,6 +301,39 @@ def build_report(feature: str, current_platform: str,
     for f in findings:
         status = f.get("status", "yellow")
         cls, icon = STATUS_META.get(status, ("yellow", "🟡"))
+
+        # Confidence badge
+        confidence = f.get("confidence", "")
+        confidence_reason = f.get("confidence_reason", "")
+        if confidence:
+            label = {"high": "● High confidence", "medium": "◑ Medium confidence", "low": "○ Low confidence"}.get(confidence, confidence)
+            title_attr = f' title="{html_escape(confidence_reason)}"' if confidence_reason else ""
+            confidence_html = f'<span class="confidence {html_escape(confidence)}"{title_attr}>{html_escape(label)}</span>'
+        else:
+            confidence_html = ""
+
+        # Evidence block
+        evidence = f.get("evidence", [])
+        if evidence:
+            chips = []
+            for ev in evidence:
+                file_short = short_path(ev.get("file", ""))
+                line = ev.get("line")
+                note = ev.get("note", "")
+                line_str = f'<span class="line">:{line}</span>' if line else ""
+                chip = f'<span class="evidence-chip">{html_escape(file_short)}{line_str}</span>'
+                if note:
+                    chip += f'<span class="evidence-note"> — {html_escape(note)}</span>'
+                chips.append(chip)
+            evidence_html = (
+                '\n      <div class="fevidence">'
+                '<div class="fevidence-label">Evidence</div>'
+                '<div class="evidence-list">' + "".join(chips) + "</div>"
+                "</div>"
+            )
+        else:
+            evidence_html = ""
+
         findings_html_parts.append(FINDING_TEMPLATE.format(
             status_class=cls,
             icon=icon,
@@ -277,6 +341,8 @@ def build_report(feature: str, current_platform: str,
             description=html_escape(f.get("description", "")),
             android_detail=html_escape(f.get("android_detail", "—")),
             ios_detail=html_escape(f.get("ios_detail", "—")),
+            confidence_html=confidence_html,
+            evidence_html=evidence_html,
         ))
 
     def notes_html(notes: str) -> str:

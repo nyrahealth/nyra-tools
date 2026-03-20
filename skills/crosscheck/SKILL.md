@@ -105,10 +105,20 @@ For each platform extract:
 - **Edge cases**
 - **Navigation flow**
 
-Classify each finding:
-- 🟢 **Parity** — same behavior on both platforms
-- 🟡 **Minor difference** — different impl, equivalent outcome
-- 🔴 **Discrepancy** — meaningful gap, missing feature, or missing error handling
+Classify each finding using this rubric:
+
+| Status | When to use |
+|---|---|
+| 🟢 **Parity** | Functionally identical — same behavior, same error cases, same edge cases. Implementation language/style may differ. |
+| 🟡 **Minor difference** | Same intent, different outcome in edge cases — e.g. different loading state, slightly different error message, extra validation on one side. User impact is low. |
+| 🔴 **Discrepancy** | One platform is missing a feature, handles an error differently in a way that affects users, has a security/data gap, or diverges in business logic. Needs action. |
+
+For each finding, also record:
+- **Evidence** — the specific file paths and line numbers (or function names) that support the finding. Be precise: `LoginViewModel.kt:87` not just `LoginViewModel.kt`. If a feature is absent on one side, note the file where it *would* live.
+- **Confidence** — how certain you are, given how many files you could read:
+  - `high` — you read the key files and the evidence is clear
+  - `medium` — you found relevant files but couldn't rule out the feature existing elsewhere
+  - `low` — files were hard to find or the feature name differs significantly between platforms
 
 ### 7. Generate HTML report
 
@@ -150,7 +160,13 @@ Pass `--analysis-json` with this shape:
       "title": "Short title",
       "description": "What differs and why it matters",
       "android_detail": "What Android does",
-      "ios_detail": "What iOS does"
+      "ios_detail": "What iOS does",
+      "evidence": [
+        {"file": "path/to/File.kt", "line": 87, "note": "rate limiting logic here"},
+        {"file": "path/to/File.swift", "line": null, "note": "no equivalent found"}
+      ],
+      "confidence": "high|medium|low",
+      "confidence_reason": "Why this confidence level — e.g. 'read both ViewModels fully' or 'iOS file not found, may be named differently'"
     }
   ],
   "recommendation": "What to do to close any gaps"
